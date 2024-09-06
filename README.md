@@ -1,4 +1,23 @@
-## Poe·tts — Pillars of Eternity Text to Speech
+## Poeï¿½tts ï¿½ Pillars of Eternity Text to Speech
+
+## XReaper notes
+
+I found this project while searching for a way to do TTS for POE's infinite walls of text. This branch aims to improve this amazing project for my own use, all credits to the original author https://github.com/miled.
+
+### Improvements implemented:
+
+- Upgrade .NET SDK to NET 8.
+- Add support for multiple languages, for now only english and spanish are configured.
+- Game path is requested to be manually selected at startup, avoiding the unreliable Windows registry search.
+- Configuration file now stores last selected language and voice.
+- Work around a bug in the Microsoft Speech API that prevents form getting all the installed voices.
+- Add a textbox with the tessaract command output for easier debugging.
+- Add a save button for manually saving the configuration.
+- Modify the build script so releasing an standalone app is as simple as publishing the solution the standard way, including all tessaract dependencies.
+- Clean up the repository.
+- Fix a few unhandled exceptions.
+
+## Original Readme
 
 Poetts is a tiny utility -made for my personal use- to synthesize some of the horribly long text on Pillars of Eternity through Windows SAPI text-to-speech engine.
 

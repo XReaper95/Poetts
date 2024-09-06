@@ -23,14 +23,14 @@ namespace SpeechApiFix
 
             if (ObjectTokenCategoryType
                     .GetMethod("Create", BindingFlags.Static | BindingFlags.NonPublic)?
-                    .Invoke(null, new object?[] { OneCoreVoicesRegistry }) is not IDisposable otc)
+                    .Invoke(null, [OneCoreVoicesRegistry]) is not IDisposable otc)
                 throw new NotSupportedException($"Failed to call Create on {ObjectTokenCategoryType} instance");
 
             using (otc)
             {
                 if (ObjectTokenCategoryType
                         .GetMethod("FindMatchingTokens", BindingFlags.Instance | BindingFlags.NonPublic)?
-                        .Invoke(otc, new object?[] { null, null }) is not IList tokens)
+                        .Invoke(otc, [null, null]) is not IList tokens)
                     throw new NotSupportedException($"Failed to list matching tokens");
 
                 // to remove duplicated voices
