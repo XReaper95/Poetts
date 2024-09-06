@@ -1,4 +1,4 @@
-## Poe�tts � Pillars of Eternity Text to Speech
+## Poe·tts — Pillars of Eternity Text to Speech
 
 ## XReaper notes
 
