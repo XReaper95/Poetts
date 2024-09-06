@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace poetts
 {
-    public static partial class User32
+    internal static partial class User32
     {
         [StructLayout(LayoutKind.Sequential)]
-        public struct Rect
+        internal struct Rect
         {
             public int left;
             public int top;
@@ -15,7 +15,7 @@ namespace poetts
         }
 
         [LibraryImport("user32.dll")]
-        public static partial IntPtr GetWindowRect(IntPtr hWnd, ref Rect rect);
+        internal static partial IntPtr GetWindowRect(IntPtr hWnd, ref Rect rect);
 
         [LibraryImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]

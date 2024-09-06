@@ -5,6 +5,10 @@ VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "poetts", "poetts\poetts.csproj", "{AB59DB88-139F-412D-816C-99EC850C41E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceDetector", "VoiceDetector\VoiceDetector.csproj", "{A4118140-D900-4CB0-86C8-E4EDD156A0FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpeechApiFix", "SpeechApiFix\SpeechApiFix.csproj", "{EB23C79B-1FB6-4EDE-9B69-45F0CD1FB31C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{AB59DB88-139F-412D-816C-99EC850C41E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB59DB88-139F-412D-816C-99EC850C41E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB59DB88-139F-412D-816C-99EC850C41E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4118140-D900-4CB0-86C8-E4EDD156A0FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4118140-D900-4CB0-86C8-E4EDD156A0FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4118140-D900-4CB0-86C8-E4EDD156A0FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4118140-D900-4CB0-86C8-E4EDD156A0FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB23C79B-1FB6-4EDE-9B69-45F0CD1FB31C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB23C79B-1FB6-4EDE-9B69-45F0CD1FB31C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB23C79B-1FB6-4EDE-9B69-45F0CD1FB31C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB23C79B-1FB6-4EDE-9B69-45F0CD1FB31C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Speech.Synthesis;
 using System.Windows.Forms;
 using System.Xml.Linq;
+using SpeechApiFix;
 
 namespace poetts
 {
@@ -18,7 +19,7 @@ namespace poetts
 
         private readonly List<string> _poeXmlStrings = [];
 
-        private Configuration _config;
+        private readonly Configuration _config;
 
         private const int ControlKeyModifier = 2;
         private const int WmHotkey = 0x0312;
@@ -40,6 +41,17 @@ namespace poetts
         // will never be null
         private readonly string _settingPoettsPath = Path.GetDirectoryName(Application.ExecutablePath)!;
 
+        private static readonly Language[] Languages =
+        [
+            new Language("English", "eng", "en"),
+            new Language("Spanish", "spa", "es"),
+        ];
+
+        private int _selectedLanguageIdx;
+        private int _selectedVoiceIdx;
+
+        private Language _selectedLanguage = Languages[0];
+
 
         // #region App logic
 
@@ -52,6 +64,16 @@ namespace poetts
             _settingHkeyKeyRead = _config.AppSettings.Settings["hkey_read"].Value;
             _settingHkeyKeyPause = _config.AppSettings.Settings["hkey_pause"].Value;
             _settingHkeyKeyStop = _config.AppSettings.Settings["hkey_stop"].Value;
+            if (int.TryParse(_config.AppSettings.Settings["last_selected_language"].Value, out var langIdx))
+            {
+                _selectedLanguageIdx = langIdx;
+                _selectedLanguage = Languages[langIdx];
+            }
+            if (int.TryParse(_config.AppSettings.Settings["last_selected_voice"].Value, out var voiceIdx))
+            {
+                _selectedVoiceIdx = voiceIdx;
+            }
+
             _settingPoeGamePath = GetPoeInstallationPath();
         }
 
@@ -108,7 +130,7 @@ namespace poetts
             UpdateStatusBar("Capturing screen..");
 
             var rect = new User32.Rect();
-            User32.GetWindowRect(gameProcess.MainWindowHandle, ref rect);
+            User32.GetWindowRect( gameProcess.MainWindowHandle, ref rect);
 
             var width = rect.right - rect.left;
             var height = rect.bottom - rect.top;
@@ -131,12 +153,25 @@ namespace poetts
         {
             ProcessStartInfo info = new(
                 $@"{_settingPoettsPath}\tesseract\tesseract.exe",
-                $@"{_settingPoettsPath}\temp\x.png {_settingPoettsPath}\temp\x -l eng {_settingPoettsPath}\tesseract\char_whitelist")
+                $@"{_settingPoettsPath}\temp\x.png {_settingPoettsPath}\temp\x -l {_selectedLanguage.OcrCode} {_settingPoettsPath}\tesseract\char_whitelist")
             {
-                WindowStyle = ProcessWindowStyle.Hidden
+                WindowStyle = ProcessWindowStyle.Hidden,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
             };
-            Process? p = Process.Start(info);
-            p?.WaitForExit();
+
+            textOcrOutput.Text = $"Running command: '{info.FileName} {info.Arguments}'\n\n";
+
+            if (Process.Start(info) is not { } process)
+            {
+                textOcrOutput.Text = $"Cannot run command";
+                return "";
+            }
+
+            textOcrOutput.Text += process.StandardError.ReadToEndAsync().Result;
+
+            process.WaitForExit();
 
             using var tr = new StreamReader($@"{_settingPoettsPath}\temp\x.txt");
             var res = tr.ReadToEnd();
@@ -264,7 +299,7 @@ namespace poetts
 
                 _isTtsPaused = false;
 
-                button2.Text = "Pause (Ctrl+P)";
+                pause_button.Text = "Pause (Ctrl+P)";
 
                 UpdateStatusBar("Playing text to speech..");
             }
@@ -274,7 +309,7 @@ namespace poetts
 
                 _isTtsPaused = true;
 
-                button2.Text = "Resume (Ctrl+P)";
+                pause_button.Text = "Resume (Ctrl+P)";
 
                 UpdateStatusBar("Text to speech paused.");
             }
@@ -287,7 +322,7 @@ namespace poetts
             UpdateStatusBar("Text to speech stopped.");
         }
 
-        private string GetPoeInstallationPath()
+        private static string GetPoeInstallationPath()
         {
             var path = ConfigurationManager.AppSettings["poe_game_path"] ?? "";
 
@@ -305,7 +340,6 @@ namespace poetts
                 if (folderDialog.ShowDialog() == DialogResult.OK)
                 {
                     path = folderDialog.SelectedPath;
-                    _config.AppSettings.Settings.Add("poe_game_path", path);
                 }
             }
 
@@ -318,6 +352,7 @@ namespace poetts
         public Gui()
         {
             _speechSynthesizer = new SpeechSynthesizer();
+            _speechSynthesizer.InjectOneCoreVoices();
             _config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             InitializeComponent();
 
@@ -335,20 +370,26 @@ namespace poetts
             textMatch.AcceptsTab = true;
             textMatch.WordWrap = true;
 
+            textOcrOutput.Multiline = true;
+            textOcrOutput.ScrollBars = ScrollBars.Vertical;
+            textOcrOutput.AcceptsReturn = true;
+            textOcrOutput.AcceptsTab = true;
+            textOcrOutput.WordWrap = true;
+
             Console.WriteLine("Starting..");
 
             LoadAppConfig();
 
-            _config.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
-
             RegisterHotKeys();
 
-            UpdateStatusBar("Loading POE XML files..");
+            StatusBarLoadingXml();
 
             if (!string.IsNullOrEmpty(_settingPoeGamePath))
             {
-                LoadXmlFiles(".stringtable", $@"{_settingPoeGamePath}\PillarsOfEternity_Data\data\localized\en\");
+                LoadXmlFiles(
+                    ".stringtable",
+                    $@"{_settingPoeGamePath}\PillarsOfEternity_Data\data\localized\{_selectedLanguage.TwoLetterIsoName}\"
+                );
             }
 
             UpdateStatusBar("Ready.");
@@ -377,7 +418,7 @@ namespace poetts
 
                     _filesLoaded++;
 
-                    UpdateStatusBar("Loading POE XML files..");
+                    StatusBarLoadingXml();
                 }
 
                 foreach (var d in Directory.GetDirectories(dir))
@@ -400,43 +441,109 @@ namespace poetts
             toolStripStatusApp.Text = status;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void RefreshLanguagesComboBox()
         {
-            //  _speechSynthesizer = new SpeechSynthesizer();
+            foreach (var lang in Languages)
+            {
+                comboBoxLanguage.Items.Add(lang.Description);
+            }
 
-            foreach (InstalledVoice voice in _speechSynthesizer.GetInstalledVoices())
+            comboBoxLanguage.SelectedIndex = 0;
+        }
+
+        private void RefreshVoicesComboBox(Language lang)
+        {
+            foreach (InstalledVoice voice in _speechSynthesizer.GetInstalledVoices().Where(
+                         voice => voice.VoiceInfo.Culture.TwoLetterISOLanguageName == lang.TwoLetterIsoName))
             {
                 comboBoxVoices.Items.Add(voice.VoiceInfo.Name);
             }
 
-            comboBoxVoices.SelectedIndex = 0; // 0;
+            if (comboBoxVoices.Items.Count == 0)
+            {
+                MessageBox.Show(
+                    $"No TTS voices found for language '{lang.Description} ({lang.TwoLetterIsoName})'. Aborting");
+                Application.Exit();
+            }
+
+            comboBoxVoices.SelectedIndex = 0;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Form1_Load(object sender, EventArgs e)
         {
-            TtsSpeak();
+            RefreshLanguagesComboBox();
+            RefreshVoicesComboBox(_selectedLanguage);
+
+            comboBoxLanguage.SelectedIndex = _selectedLanguageIdx;
+            comboBoxVoices.SelectedIndex = _selectedVoiceIdx;
+
+            comboBoxLanguage.SelectedIndexChanged += (_, _) =>
+            {
+                Language newLang = Languages[comboBoxLanguage.SelectedIndex];
+
+                if (_selectedLanguage == newLang) return;
+
+                _selectedLanguage = newLang;
+                comboBoxVoices.Items.Clear();
+                RefreshVoicesComboBox(_selectedLanguage);
+
+                _poeXmlStrings.Clear();
+                _stringsLoaded = 0;
+                _filesLoaded = 0;
+
+                StatusBarLoadingXml();
+                LoadXmlFiles(
+                    ".stringtable",
+                    $@"{_settingPoeGamePath}\PillarsOfEternity_Data\data\localized\{_selectedLanguage.TwoLetterIsoName}\"
+                );
+                UpdateStatusBar("Ready.");
+            };
         }
 
-        private void button2_Click(object sender, EventArgs e)
-        {
-            TtsPause();
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            TtsStop();
-        }
-
-        private void button5_Click(object sender, EventArgs e)
+        private void extract_button_Click(object sender, EventArgs e)
         {
             OcrExtractText();
 
             SearchMatch(textOcr.Text);
         }
 
-        private void button4_Click(object sender, EventArgs e)
+        private void read_button_Click(object sender, EventArgs e)
+        {
+            TtsSpeak();
+        }
+
+        private void pause_button_Click(object sender, EventArgs e)
+        {
+            TtsPause();
+        }
+
+        private void stop_button_Click(object sender, EventArgs e)
+        {
+            TtsStop();
+        }
+
+        private void parameters_button_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Not implemented.", "Poetts - Parameters");
         }
+
+        private void save_button_Click(object sender, EventArgs e)
+        {
+            _config.AppSettings.Settings["last_selected_voice"].Value = comboBoxVoices.SelectedIndex.ToString();
+            _config.AppSettings.Settings["last_selected_language"].Value = comboBoxLanguage.SelectedIndex.ToString();
+            _config.AppSettings.Settings["poe_game_path"].Value = _settingPoeGamePath;
+
+            _config.Save(ConfigurationSaveMode.Modified);
+
+            ConfigurationManager.RefreshSection("appSettings");
+        }
+
+        private readonly record struct Language(
+            string Description,
+            string OcrCode,
+            string TwoLetterIsoName
+        );
+
+        private void StatusBarLoadingXml() => UpdateStatusBar($"Loading POE {_selectedLanguage.Description} XML files..");
     }
 }
