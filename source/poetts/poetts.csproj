@@ -18,6 +18,119 @@
         <ApplicationIcon>Pillars_of_Eternity.ico</ApplicationIcon>
     </PropertyGroup>
     <ItemGroup>
+        <Content Include="..\deps\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+<!--        <Content Include="..\deps\temp\.gitkeep">-->
+<!--          <Link>deps\temp\.gitkeep</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\char_whitelist">-->
+<!--          <Link>deps\tesseract\char_whitelist</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\ambigs.train">-->
+<!--          <Link>deps\tesseract\tessdata\configs\ambigs.train</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\api_config">-->
+<!--          <Link>deps\tesseract\tessdata\configs\api_config</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\bigram">-->
+<!--          <Link>deps\tesseract\tessdata\configs\bigram</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\box.train">-->
+<!--          <Link>deps\tesseract\tessdata\configs\box.train</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\box.train.stderr">-->
+<!--          <Link>deps\tesseract\tessdata\configs\box.train.stderr</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\digits">-->
+<!--          <Link>deps\tesseract\tessdata\configs\digits</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\hocr">-->
+<!--          <Link>deps\tesseract\tessdata\configs\hocr</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\inter">-->
+<!--          <Link>deps\tesseract\tessdata\configs\inter</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\kannada">-->
+<!--          <Link>deps\tesseract\tessdata\configs\kannada</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\linebox">-->
+<!--          <Link>deps\tesseract\tessdata\configs\linebox</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\logfile">-->
+<!--          <Link>deps\tesseract\tessdata\configs\logfile</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\makebox">-->
+<!--          <Link>deps\tesseract\tessdata\configs\makebox</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\quiet">-->
+<!--          <Link>deps\tesseract\tessdata\configs\quiet</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\rebox">-->
+<!--          <Link>deps\tesseract\tessdata\configs\rebox</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\strokewidth">-->
+<!--          <Link>deps\tesseract\tessdata\configs\strokewidth</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\configs\unlv">-->
+<!--          <Link>deps\tesseract\tessdata\configs\unlv</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.bigrams">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.bigrams</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.fold">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.fold</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.lm">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.lm</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.lm_">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.lm_</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.nn">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.nn</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.params">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.params</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.size">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.size</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.cube.word-freq">-->
+<!--          <Link>deps\tesseract\tessdata\eng.cube.word-freq</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.tesseract_cube.nn">-->
+<!--          <Link>deps\tesseract\tessdata\eng.tesseract_cube.nn</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\eng.traineddata">-->
+<!--          <Link>deps\tesseract\tessdata\eng.traineddata</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\osd.traineddata">-->
+<!--          <Link>deps\tesseract\tessdata\osd.traineddata</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\tessconfigs\batch">-->
+<!--          <Link>deps\tesseract\tessdata\tessconfigs\batch</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\tessconfigs\batch.nochop">-->
+<!--          <Link>deps\tesseract\tessdata\tessconfigs\batch.nochop</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\tessconfigs\matdemo">-->
+<!--          <Link>deps\tesseract\tessdata\tessconfigs\matdemo</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\tessconfigs\msdemo">-->
+<!--          <Link>deps\tesseract\tessdata\tessconfigs\msdemo</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\tessconfigs\nobatch">-->
+<!--          <Link>deps\tesseract\tessdata\tessconfigs\nobatch</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tessdata\tessconfigs\segdemo">-->
+<!--          <Link>deps\tesseract\tessdata\tessconfigs\segdemo</Link>-->
+<!--        </Content>-->
+<!--        <Content Include="..\deps\tesseract\tesseract.exe">-->
+<!--          <Link>deps\tesseract\tesseract.exe</Link>-->
+<!--            <CopyToPublishDirectory>Always</CopyToPublishDirectory>-->
+<!--        </Content>-->
         <Content Include="Pillars_of_Eternity.ico"/>
     </ItemGroup>
     <ItemGroup>
