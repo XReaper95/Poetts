@@ -6298,4 +6298,10 @@ Depending on amount of text on the screen and your computer power, the process m
         AACAAQAAwAEAAMABAADABwAA4AcAAOAHAADgBwAA8AcAAPgPAAD43wAA/t8AAP/fAAA=
 </value>
   </data>
+  <data name="poe_path_not_found" xml:space="preserve">
+    <value>Pillars of Eternity installation folder was not found. You may still use Poetts, however the program may not work as expected.</value>
+  </data>
+  <data name="poe_game_path_not_found_title" xml:space="preserve">
+    <value>Poetts - Game not found</value>
+  </data>
 </root>

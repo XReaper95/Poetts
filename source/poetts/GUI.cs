@@ -1,188 +1,172 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Speech;
-using System.Speech.Synthesis;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
-using System.Drawing.Imaging;
-using System.Xml;
-using System.Xml.Linq;
-using System.IO;
 using System.Configuration;
-using Microsoft.Win32;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Speech.Synthesis;
+using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace poetts
 {
-    public partial class GUI : Form
+    public partial class Gui : Form
     {
-        SpeechSynthesizer speechynthesizer;
+        private readonly SpeechSynthesizer _speechSynthesizer;
 
-        List<string> poeXmlStrings = new List<string>();
+        private readonly List<string> _poeXmlStrings = [];
 
-        public enum KeyModifier
-        {
-            None = 0,
-            Alt = 1,
-            Control = 2,
-            Shift = 4,
-            WinKey = 8
-        }
+        private Configuration _config;
 
-        private static int WM_HOTKEY = 0x0312;
-        private int _filesLoaded = 0;
-        private int _stringsLoaded = 0;
-        private int _ocrAttempts = 0;
-        private int _ttsAttempts = 0;
-        private bool _isTtsPaused = false;
+        private const int ControlKeyModifier = 2;
+        private const int WmHotkey = 0x0312;
+        private const string GameProcessName = "PillarsOfEternity";
+
+        private int _filesLoaded;
+        private int _stringsLoaded;
+        private int _ocrAttempts;
+        private int _ttsAttempts;
+        private bool _isTtsPaused;
 
         private string _settingHkeyExtract = "E";
-        private string _settingHkeykeyRead = "R";
-        private string _settingHkeykeyPause = "P";
-        private string _settingHkeykeyStop = "S";
+        private string _settingHkeyKeyRead = "R";
+        private string _settingHkeyKeyPause = "P";
+        private string _settingHkeyKeyStop = "S";
+
         private string _settingPoeGamePath = "";
-        private string _settingPoettsPath = "";
+
+        // will never be null
+        private readonly string _settingPoettsPath = Path.GetDirectoryName(Application.ExecutablePath)!;
 
 
-        //////////////////////////////////////
-        /// App logic
-        ///////////////////////////////////////////////// 
+        // #region App logic
 
         /// <summary>
         /// Setup custom hotkeys and stuff .. for future use, prolly.
         /// </summary>
         private void LoadAppConfig()
         {
-            _settingHkeyExtract = System.Configuration.ConfigurationManager.AppSettings["hkey_extract"];
-            _settingHkeykeyRead = System.Configuration.ConfigurationManager.AppSettings["hkey_read"];
-            _settingHkeykeyPause = System.Configuration.ConfigurationManager.AppSettings["hkey_pause"];
-            _settingHkeykeyStop = System.Configuration.ConfigurationManager.AppSettings["hkey_stop"];
-            _settingPoeGamePath = System.Configuration.ConfigurationManager.AppSettings["poe_game_path"];
-
-            _settingPoettsPath = Path.GetDirectoryName(Application.ExecutablePath);
-
-            if (string.IsNullOrEmpty(_settingPoeGamePath))
-            {
-                _settingPoeGamePath = GetPOEInstallationPath();
-
-                if (string.IsNullOrEmpty(_settingPoeGamePath))
-                {
-                    MessageBox.Show("Pillars of Eternity installation folder was not found. You may still use Poetts, however the program may not work as expected.", "Poetts - Game not found", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                }
-            }
+            _settingHkeyExtract = _config.AppSettings.Settings["hkey_extract"].Value;
+            _settingHkeyKeyRead = _config.AppSettings.Settings["hkey_read"].Value;
+            _settingHkeyKeyPause = _config.AppSettings.Settings["hkey_pause"].Value;
+            _settingHkeyKeyStop = _config.AppSettings.Settings["hkey_stop"].Value;
+            _settingPoeGamePath = GetPoeInstallationPath();
         }
 
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_HOTKEY)
+            if (m.Msg == WmHotkey)
             {
-                Keys key = (Keys)(((int)m.LParam >> 16) & 0xFFFF);
-                KeyModifier modifier = (KeyModifier)((int)m.LParam & 0xFFFF);
-                int id = m.WParam.ToInt32();
+                var id = m.WParam.ToInt32();
 
-                HandleHotKeys(modifier, id);
+                HandleHotKeys(id);
             }
 
             base.WndProc(ref m);
         }
 
-        public void RegisterHotKeys()
+        private void RegisterHotKeys()
         {
-            User32.RegisterHotKey(this.Handle, 1, (uint)KeyModifier.Control, (uint)_settingHkeyExtract[0]);
-            User32.RegisterHotKey(this.Handle, 2, (uint)KeyModifier.Control, (uint)_settingHkeykeyRead[0]);
-            User32.RegisterHotKey(this.Handle, 3, (uint)KeyModifier.Control, (uint)_settingHkeykeyPause[0]);
-            User32.RegisterHotKey(this.Handle, 4, (uint)KeyModifier.Control, (uint)_settingHkeykeyStop[0]);
+            User32.RegisterHotKey(Handle, 1, ControlKeyModifier, _settingHkeyExtract[0]);
+            User32.RegisterHotKey(Handle, 2, ControlKeyModifier, _settingHkeyKeyRead[0]);
+            User32.RegisterHotKey(Handle, 3, ControlKeyModifier, _settingHkeyKeyPause[0]);
+            User32.RegisterHotKey(Handle, 4, ControlKeyModifier, _settingHkeyKeyStop[0]);
         }
 
-        private void UnregisterHotKeys()
+        private void HandleHotKeys(int id)
         {
-            User32.UnregisterHotKey(this.Handle, 1);
-            User32.UnregisterHotKey(this.Handle, 2);
-            User32.UnregisterHotKey(this.Handle, 3);
-            User32.UnregisterHotKey(this.Handle, 4);
-        }
+            switch (id)
+            {
+                // Extract
+                case 1:
+                    OcrExtractText();
 
-        public void HandleHotKeys(KeyModifier modifier, int id)
-        {
-            // Extract
-            if (id == 1)
-            {
-                OCRExtractText();
-
-                SearchMatch(textOcr.Text);
-            }
-            // Read
-            else if (id == 2)
-            {
-                TTSSpeak();
-            }
-            // Pause
-            else if (id == 3)
-            {
-                TTSPause();
-            }
-            // Stop
-            else if (id == 4)
-            {
-                TTSStop();
+                    SearchMatch(textOcr.Text);
+                    break;
+                // Read
+                case 2:
+                    TtsSpeak();
+                    break;
+                // Pause
+                case 3:
+                    TtsPause();
+                    break;
+                // Stop
+                case 4:
+                    TtsStop();
+                    break;
             }
         }
 
         //////////////////////////////////////
         /// OCR
-        ///////////////////////////////////////////////// 
-
-        public void CaptureScreenShot(string procName)
+        /////////////////////////////////////////////////
+        private void CaptureScreenShot(Process gameProcess)
         {
-            updateStatusBar("Capturing screen..");
+            UpdateStatusBar("Capturing screen..");
 
-            var proc = Process.GetProcessesByName(procName)[0];
-            Console.WriteLine(proc);
             var rect = new User32.Rect();
-            User32.GetWindowRect(proc.MainWindowHandle, ref rect);
+            User32.GetWindowRect(gameProcess.MainWindowHandle, ref rect);
 
-            int width = rect.right - rect.left;
-            int height = rect.bottom - rect.top;
+            var width = rect.right - rect.left;
+            var height = rect.bottom - rect.top;
 
             var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             Graphics graphics = Graphics.FromImage(bmp);
-            graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
+            graphics.CopyFromScreen(
+                rect.left,
+                rect.top,
+                0,
+                0,
+                new Size(width, height),
+                CopyPixelOperation.SourceCopy
+            );
 
-            bmp.Save(_settingPoettsPath + "\\temp\\x.png", ImageFormat.Png);
+            bmp.Save($@"{_settingPoettsPath}\temp\x.png", ImageFormat.Png);
         }
 
-        public string GetTextFromBitmap()
+        private string GetTextFromBitmap()
         {
-            ProcessStartInfo info = new ProcessStartInfo(_settingPoettsPath + "\\tesseract\\tesseract.exe", _settingPoettsPath + "\\temp\\x.png " + _settingPoettsPath + "\\temp\\x -l eng nobatch " + _settingPoettsPath + "\\tesseract\\char_whitelist");
-            info.WindowStyle = ProcessWindowStyle.Hidden;
-            Process p = Process.Start(info);
-            p.WaitForExit();
+            ProcessStartInfo info = new(
+                $@"{_settingPoettsPath}\tesseract\tesseract.exe",
+                $@"{_settingPoettsPath}\temp\x.png {_settingPoettsPath}\temp\x -l eng {_settingPoettsPath}\tesseract\char_whitelist")
+            {
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            Process? p = Process.Start(info);
+            p?.WaitForExit();
 
-            TextReader tr = new StreamReader(_settingPoettsPath + "\\temp\\x.txt");
-            string res = tr.ReadToEnd();
-            tr.Close();
+            using var tr = new StreamReader($@"{_settingPoettsPath}\temp\x.txt");
+            var res = tr.ReadToEnd();
 
             return res.Trim();
         }
 
-        private void OCRExtractText()
+        private void OcrExtractText()
         {
             textOcr.Text = "";
             textMatch.Text = "";
 
-            CaptureScreenShot("PillarsOfEternity");
+            Process? gameProcess = Process.GetProcessesByName(GameProcessName).FirstOrDefault();
 
-            updateStatusBar("Tesseract proccessing..");
+            if (gameProcess == null)
+            {
+                MessageBox.Show(
+                    "Cannot find Pillars of Eternity process, make sure the game is running and try again.",
+                    "Cannot find game process",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return;
+            }
 
-            string processedtext = GetTextFromBitmap();
+            CaptureScreenShot(gameProcess);
 
-            textOcr.Text = processedtext.Replace("\n", Environment.NewLine);
+            UpdateStatusBar("Tesseract processing..");
+
+            textOcr.Text = GetTextFromBitmap().Replace("\n", Environment.NewLine);
 
             _ocrAttempts++;
         }
@@ -199,29 +183,17 @@ namespace poetts
                 return ocrText;
             }
 
-            updateStatusBar("Searching for matches..");
+            UpdateStatusBar("Searching for matches..");
 
-            string[] lines = ocrText.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var words = ocrText.Split([",", ";", ".", "!", "?", " "], StringSplitOptions.RemoveEmptyEntries);
 
-            string line = lines[0];
+            var bestMatch = "";
+            var bestMatchCounts = 0;
+            var currentMatchCounts = 0;
 
-            // string[] words = line.Split(new string[] { ",", ";", ".", "!", "?", " " }, StringSplitOptions.RemoveEmptyEntries);
-
-            string[] words = ocrText.Split(new string[] { ",", ";", ".", "!", "?", " " }, StringSplitOptions.RemoveEmptyEntries);
-
-            string bestMatch = "";
-            int bestMatchCounts = 0;
-            int currentMatchCounts = 0;
-
-            foreach (string entry in poeXmlStrings)
+            foreach (var entry in _poeXmlStrings)
             {
-                foreach (string word in words)
-                {
-                    if (word.Length > 3 && entry.Contains(word))
-                    {
-                        currentMatchCounts++;
-                    }
-                }
+                currentMatchCounts += words.Count(word => word.Length > 3 && entry.Contains(word));
 
                 if (currentMatchCounts > bestMatchCounts)
                 {
@@ -234,116 +206,122 @@ namespace poetts
 
             textMatch.Text = "(" + bestMatchCounts + ") " + bestMatch.Replace("\n", Environment.NewLine);
 
-            updateStatusBar("Match found.");
+            UpdateStatusBar("Match found.");
 
             return bestMatch;
         }
 
         //////////////////////////////////////
         /// Text to speech
-        ///////////////////////////////////////////////// 
-
-        private void TTSSpeak()
+        /////////////////////////////////////////////////
+        private void TtsSpeak()
         {
-            TTSStop();
+            TtsStop();
 
-            OCRExtractText();
+            OcrExtractText();
 
             if (string.IsNullOrEmpty(textOcr.Text))
             {
                 textOcr.Text = "No text found.";
 
-                TTSSpeakAsync(textOcr.Text);
+                TtsSpeakAsync(textOcr.Text);
             }
             else
             {
-                string bestMatch = SearchMatch(textOcr.Text);
+                var bestMatch = SearchMatch(textOcr.Text);
 
-                TTSSpeakAsync(bestMatch);
+                TtsSpeakAsync(bestMatch);
             }
 
             _ttsAttempts++;
         }
 
-        private void TTSSpeakAsync(string data)
+        private void TtsSpeakAsync(string data)
         {
             try
             {
-                speechynthesizer.Rate = trackBarRate.Value;
-                speechynthesizer.Volume = trackBarVolume.Value;
-                speechynthesizer.SelectVoice(comboBoxVoices.Text);
+                _speechSynthesizer.Rate = trackBarRate.Value;
+                _speechSynthesizer.Volume = trackBarVolume.Value;
+                _speechSynthesizer.SelectVoice(comboBoxVoices.Text);
 
-                speechynthesizer.SpeakAsync(data);
+                _speechSynthesizer.SpeakAsync(data);
 
-                updateStatusBar("Playing text to speech..");
+                UpdateStatusBar("Playing text to speech..");
             }
             catch (Exception ex)
             {
-                updateStatusBar("Text to speech error!");
+                UpdateStatusBar("Text to speech error!");
 
                 MessageBox.Show(ex.Message);
             }
         }
 
-        private void TTSPause()
+        private void TtsPause()
         {
             if (_isTtsPaused)
             {
-                speechynthesizer.Resume();
+                _speechSynthesizer.Resume();
 
                 _isTtsPaused = false;
 
                 button2.Text = "Pause (Ctrl+P)";
 
-                updateStatusBar("Playing text to speech..");
+                UpdateStatusBar("Playing text to speech..");
             }
             else
             {
-                speechynthesizer.Pause();
+                _speechSynthesizer.Pause();
 
                 _isTtsPaused = true;
 
                 button2.Text = "Resume (Ctrl+P)";
 
-                updateStatusBar("Text to speech paused.");
+                UpdateStatusBar("Text to speech paused.");
             }
         }
 
-        private void TTSStop()
+        private void TtsStop()
         {
-            speechynthesizer.SpeakAsyncCancelAll();
+            _speechSynthesizer.SpeakAsyncCancelAll();
 
-            updateStatusBar("Text to speech stopped.");
+            UpdateStatusBar("Text to speech stopped.");
         }
 
-        public string GetPOEInstallationPath()
+        private string GetPoeInstallationPath()
         {
-            string programDisplayName = "Pillars of Eternity";
+            var path = ConfigurationManager.AppSettings["poe_game_path"] ?? "";
 
-            foreach (var item in Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall").GetSubKeyNames())
+            if (!string.IsNullOrEmpty(path)) return path;
+
+            DialogResult result = MessageBox.Show(
+                "Pillars of Eternity game path not found. " +
+                "You may still use Poetts, however the program may not work as expected. " +
+                "Would you like to select it now?",
+                "Poetts - Game not found", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+
+            if (result == DialogResult.Yes)
             {
-
-                object programName = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + item).GetValue("DisplayName");
-                object programPath = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + item).GetValue("InstallLocation");
-
-                if (string.Equals(programName, programDisplayName))
+                var folderDialog = new FolderBrowserDialog();
+                if (folderDialog.ShowDialog() == DialogResult.OK)
                 {
-                    return (string)programPath;
+                    path = folderDialog.SelectedPath;
+                    _config.AppSettings.Settings.Add("poe_game_path", path);
                 }
             }
 
-            return "";
+            return path;
         }
 
         //////////////////////////////////////
         /// Buttons and stuff
-        ///////////////////////////////////////////////// 
-
-        public GUI()
+        /////////////////////////////////////////////////
+        public Gui()
         {
+            _speechSynthesizer = new SpeechSynthesizer();
+            _config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             InitializeComponent();
 
-            this.MaximizeBox = false;
+            MaximizeBox = false;
 
             textOcr.Multiline = true;
             textOcr.ScrollBars = ScrollBars.Vertical;
@@ -361,36 +339,37 @@ namespace poetts
 
             LoadAppConfig();
 
+            _config.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+
             RegisterHotKeys();
 
-            updateStatusBar("Loading POE XML files..");
+            UpdateStatusBar("Loading POE XML files..");
 
             if (!string.IsNullOrEmpty(_settingPoeGamePath))
             {
-                loadXMLFiles(".stringtable", _settingPoeGamePath + "PillarsOfEternity_Data\\data\\localized\\en\\");
+                LoadXmlFiles(".stringtable", $@"{_settingPoeGamePath}\PillarsOfEternity_Data\data\localized\en\");
             }
 
-            updateStatusBar("Ready.");
+            UpdateStatusBar("Ready.");
         }
 
-        public void loadXMLFiles(string fileType, string dir)
+        private void LoadXmlFiles(string fileType, string dir)
         {
-            string dirName = dir;
-
             try
             {
-                foreach (string f in Directory.GetFiles(dirName))
+                foreach (var f in Directory.GetFiles(dir))
                 {
                     if (f.Contains(fileType))
                     {
-                        var xml = XDocument.Load(f);
+                        XDocument xml = XDocument.Load(f);
 
-                        var query = from c in xml.Root.Descendants("Entry")
-                                    select c.Element("DefaultText").Value;
+                        var query = from c in xml.Root?.Descendants("Entry")
+                            select c.Element("DefaultText")?.Value;
 
-                        foreach (string defaultText in query)
+                        foreach (var defaultText in query)
                         {
-                            poeXmlStrings.Add(defaultText);
+                            _poeXmlStrings.Add(defaultText);
 
                             _stringsLoaded++;
                         }
@@ -398,12 +377,12 @@ namespace poetts
 
                     _filesLoaded++;
 
-                    updateStatusBar("Loading POE XML files..");
+                    UpdateStatusBar("Loading POE XML files..");
                 }
 
-                foreach (string d in Directory.GetDirectories(dirName))
+                foreach (var d in Directory.GetDirectories(dir))
                 {
-                    loadXMLFiles(fileType, d);
+                    LoadXmlFiles(fileType, d);
                 }
             }
             catch (Exception ex)
@@ -412,7 +391,7 @@ namespace poetts
             }
         }
 
-        public void updateStatusBar(string status)
+        private void UpdateStatusBar(string status)
         {
             toolStripStatusFiles.Text = "Files: " + _filesLoaded;
             toolStripStatusStrings.Text = "Strings: " + _stringsLoaded;
@@ -423,39 +402,34 @@ namespace poetts
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            speechynthesizer = new SpeechSynthesizer();
+            //  _speechSynthesizer = new SpeechSynthesizer();
 
-            foreach (InstalledVoice voice in speechynthesizer.GetInstalledVoices())
+            foreach (InstalledVoice voice in _speechSynthesizer.GetInstalledVoices())
             {
                 comboBoxVoices.Items.Add(voice.VoiceInfo.Name);
             }
 
-            comboBoxVoices.SelectedIndex = 3; // 0;
-        }
-
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            UnregisterHotKeys();
+            comboBoxVoices.SelectedIndex = 0; // 0;
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            TTSSpeak();
+            TtsSpeak();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            TTSPause();
+            TtsPause();
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            TTSStop();
+            TtsStop();
         }
 
         private void button5_Click(object sender, EventArgs e)
         {
-            OCRExtractText();
+            OcrExtractText();
 
             SearchMatch(textOcr.Text);
         }

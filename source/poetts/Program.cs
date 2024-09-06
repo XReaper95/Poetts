@@ -1,19 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Runtime.Versioning;
 using System.Windows.Forms;
+
+// only works on windows
+[assembly: SupportedOSPlatform("windows")]
 
 namespace poetts
 {
-    static class Program
+    internal static class Program
     {
         [STAThread]
-        static void Main()
+        private static void Main()
         {
+            // fix blurriness
+            if (Environment.OSVersion.Version.Major >= 6)
+            {
+                User32.SetProcessDpiAware();
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new GUI());
+            Application.Run(new Gui());
         }
     }
 }
